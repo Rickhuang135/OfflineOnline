@@ -1,0 +1,85 @@
+{
+  description = "A flake for RL with PyAutoGUI";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  inputs.systems.url = "github:nix-systems/default";
+  inputs.flake-utils = {
+    url = "github:numtide/flake-utils";
+    inputs.systems.follows = "systems";
+  };
+
+  outputs = {
+    nixpkgs,
+    flake-utils,
+    ...
+  }:
+    flake-utils.lib.eachDefaultSystem (
+      system: let
+        pkgs = import nixpkgs {
+          system = "x86_64-linux";
+          config.allowUnfree = true;
+          config.cudaSupport = true;
+        };
+        pythonEnv = pkgs.python313.withPackages (ps:
+          with ps; [
+          ]);
+      in {
+        devShell = pkgs.mkShell rec {
+          buildInputs = with pkgs; [
+            uv
+            glib
+            zlib
+            libGL
+            stdenv.cc.cc.lib
+            libsForQt5.wrapQtAppsHook
+            ninja
+            cudatoolkit
+            python313Packages.pandas
+            (python313Packages.matplotlib.override {
+              enableQt = true;
+              enableGtk3 = true;
+            })
+            chromium
+            xorg.xvfb
+            xorg.xauth
+            xorg.xkbcomp
+            xorg.libXrandr
+            gnome-screenshot
+            xdotool
+            python313Packages.pyvirtualdisplay
+            python313Packages.pillow
+          ];
+          LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath [
+            pkgs.stdenv.cc.cc.lib
+            pkgs.zlib
+            pkgs.libGL
+            pkgs.glib.out
+          ]}:$LD_LIBRARY_PATH";
+
+          # UV_PYTHON = "${pythonEnv}/bin/python";
+          UV_PYTHON_PREFERENCE = "only-system";
+          shellHook = ''
+              export CUDA_PATH=${pkgs.cudatoolkit}
+
+              # Set CC to GCC 13 to avoid the version mismatch error
+              export CC=${pkgs.gcc13}/bin/gcc
+              export CXX=${pkgs.gcc13}/bin/g++
+              export PATH=${pkgs.gcc13}/bin:$PATH
+
+              # Add necessary paths for dynamic linking
+              export LD_LIBRARY_PATH=${
+                pkgs.lib.makeLibraryPath ([
+                  "/run/opengl-driver" # Needed to find libGL.so
+                ] ++ buildInputs)
+              }:$LD_LIBRARY_PATH
+
+              # Set LIBRARY_PATH to help the linker find the CUDA static libraries
+              export LIBRARY_PATH=${
+                pkgs.lib.makeLibraryPath [
+                  pkgs.cudatoolkit
+                ]
+              }:$LIBRARY_PATH
+          '';
+        };
+      }
+    );
+}
