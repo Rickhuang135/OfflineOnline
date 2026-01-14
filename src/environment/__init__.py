@@ -16,6 +16,3 @@ time.sleep(7)
 for conn in pipes:
     print("sending message")
     conn.send("start")
-
-
-

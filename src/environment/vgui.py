@@ -4,6 +4,7 @@ import subprocess
 import time
 from .localpaths import Images
 from .utils.virtual_user import assign_directory
+from .utils.suppress_warning import filter_proc
 
 class Vgui:
     size = 670, 500
@@ -12,8 +13,7 @@ class Vgui:
         self.img_path = Images
         self.saving_index = 0
         self.conn = conn
-
-        self.display = Display(visible=False, size=self.size)
+        self.display = Display(visible=False, size=self.size, use_xauth=True)
         self.display.start()
 
         # Set correct environment 
@@ -25,10 +25,13 @@ class Vgui:
         import pyautogui # Import AFTER virtual display is active
         self.controller = pyautogui
         # Open google chrome
-        subprocess.Popen(
+        proc = subprocess.Popen(
             ["chromium", "--disable-gpu", "--new-window", f"--user-data-dir={assign_directory(self.id)}"],
-            env=self.env,
+            env = self.env,
+            stderr = subprocess.PIPE,
+            text = True
         )
+        filter_proc(proc)
         time.sleep(4) # TODO: add more robust loading detection system
         pyautogui.typewrite("chrome://dino")
         pyautogui.typewrite(["enter"])
