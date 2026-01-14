@@ -2,15 +2,17 @@ from pyvirtualdisplay import Display
 import os
 import subprocess
 import time
-from .localpaths import Images
+from .localpaths import Screenshots
 from .utils.virtual_user import assign_directory
 from .utils.suppress_warning import filter_proc
+from .utils.wait_on_img import wait_on_img
+from .keywords import Words
 
 class Vgui:
     size = 670, 500
 
     def __init__(self, conn):
-        self.img_path = Images
+        self.img_path = Screenshots
         self.saving_index = 0
         self.conn = conn
         self.display = Display(visible=False, size=self.size, use_xauth=True)
@@ -32,19 +34,22 @@ class Vgui:
             text = True
         )
         filter_proc(proc)
-        time.sleep(4) # TODO: add more robust loading detection system
+        wait_on_img(pyautogui, "Google.png", 4)
         pyautogui.typewrite("chrome://dino")
         pyautogui.typewrite(["enter"])
-        time.sleep(1)
-        print(f"process {self.id} successfully prepared")
+        wait_on_img(pyautogui, "dino_init.png", 2)
 
-        self.get_instruction()
+
+        self.conn.send(self.id)
+        return self.get_instruction()
 
     def get_instruction(self):
         msg = self.conn.recv()
         match msg:
-            case "start":
+            case Words.STARTGAMES:
                 self.game_loop()
+            case Words.CLOSEDISPLAYS:
+                self.end()
             case _:
                 raise Exception(f"vgui {self.id} received unknown instruction {msg}")
 
@@ -55,12 +60,12 @@ class Vgui:
     def game_loop(self):
         # Start game
         self.controller.typewrite(" ")
-        for _ in range(5):
+        for _ in range(7):
             frame = self.controller.screenshot()
             self.save_image(frame)
             time.sleep(1)
-        self.end()
 
+        return self.get_instruction()
 
     def end(self):
         self.controller.hotkey("alt", "f4")
