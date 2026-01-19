@@ -1,5 +1,5 @@
 from time import time, sleep
-from ..localpaths import locateOnScreenTargets, crashRecords
+from OfflineOnline.config.paths import locateOnScreenTargets, crashRecords
 
 def wait_on_img(pyautogui, img_name: str, time_out:float = 10, retry_interal: float = 0.1) -> None:
     full_path = locateOnScreenTargets / img_name

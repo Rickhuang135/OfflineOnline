@@ -11,6 +11,6 @@ wheels/
 .direnv
 
 # Other
-Images/Screenshots
-Images/CrashRecords
-src/environment/VirtualUsers/
+/**/Images/Screenshots
+/**/Images/CrashRecords
+/**/environment/VirtualUsers/

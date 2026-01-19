@@ -8,7 +8,7 @@ FILTER_PATTERNS = [
     re.compile(r"unknown libva error"),
     re.compile(r"The name org.freedesktop.UPower was not provided"),
     re.compile(r"Xlib.xauth: warning, no xauthority details available"),
-    re.compile(r"Message 2 rejected by interface blink.mojom.Widget"),
+    re.compile(r"rejected by interface blink.mojom.Widget"),
 ]
 
 def should_suppress(line: str) -> bool:
