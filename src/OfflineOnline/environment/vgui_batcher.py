@@ -5,6 +5,7 @@ import numpy as np
 import time
 
 from .utils.numpy_similarity import compare
+from .utils.check_end import check_end
 from .utils.save_crash import save_to_png
 from .vgui import Vgui
 from .keywords import Words, Actions
@@ -12,7 +13,7 @@ from .keywords import Words, Actions
 
 class VguiBatch:
     time_out = 10
-    similarity_threshold = 0.95
+    similarity_threshold = 0.99
 
     def __init__(
             self, 
@@ -51,7 +52,7 @@ class VguiBatch:
                         msg[Words.shape],
                         dtype = msg[Words.dtype],
                         buffer = shm.buf
-                    )
+                    ) # shape (height, width, color_channels)
                     n_ready += 1
                     self.print1(f"{id}, ", end="") 
                     self.pipes[id] = pipe
@@ -67,22 +68,28 @@ class VguiBatch:
             # optional checks
             if perform_checks:
                 # horizontal check: ensure all child processes have the same starting image
-                example_id = 0 
-                example_array = self.shm_arrays[0]
-                for id, shm_array in enumerate(self.shm_arrays[1:]):
-                    similarity = compare(example_array, shm_array)
-                    if similarity < self.similarity_threshold:
-                        save_to_png(example_array, f"horizontal_match_failed_vgui{example_id}")
-                        save_to_png(shm_array, f"horizontal_match_failed_vgui{id}")
-                        raise Exception(f"Numpy inputs from vgui {example_id} and vgui {id} has similarity {similarity}, threshold is {self.similarity_threshold}")
+                if n_parallel > 1:
+                    arrays = self.read_shm()
+                    example_id = 0 
+                    example_array = arrays[0]
+                    similarities = compare(arrays[1:], example_array)
+                    for i, similarity in enumerate(similarities):
+                        id = i+1
+                        if similarity < self.similarity_threshold:
+                            save_to_png(example_array, f"horizontal_match_failed_vgui{example_id}")
+                            save_to_png(arrays[id], f"horizontal_match_failed_vgui{id}")
+                            raise Exception(f"Numpy inputs from vgui {example_id} and vgui {id} has similarity {similarity}, threshold is {self.similarity_threshold}")
                     
                 # vertical check: play one round on each vgui to check movement and game end dectection
                 start = time.time()
-                self.get()
+                # self.pipes[0].send(Words.setVerbose)
+                # self.pipes[0].send(Words.SAVEGAME)
+                self.fetch()
                 while time.time()-start < 7:
-                    # self.get([Actions.Duck for _ in range(self.n_parallel)])
-                    self.get()
+                    # self.fetch([Actions.Duck for _ in range(self.n_parallel)])
+                    self.fetch()
                     time.sleep(0.1)
+                print(self.read_shm().shape)
         except Exception as e:
             self.end()
             raise e
@@ -104,7 +111,7 @@ class VguiBatch:
         for shm in self.shm:
             shm.close()
 
-    def get(self, actions: list[str] | None = None):
+    def fetch(self, actions: list[str] | None = None):
         if actions is None:
             actions = [Actions.Jump for _ in range(self.n_parallel)]
         for conn, action in zip(self.pipes, actions):
@@ -122,4 +129,7 @@ class VguiBatch:
             missing_index = time_stamps.index(None)
             raise Exception(f"Process {missing_index} dropped after {time.time()-start:2f}s during image retrieval")
         return time_stamps
+    
+    def read_shm(self):
+        return np.stack(self.shm_arrays) # shape (n_parallel, height, width, color_channels)
 

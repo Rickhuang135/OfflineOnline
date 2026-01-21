@@ -1,7 +1,10 @@
 import numpy as np
 
-def compare(img1: np.ndarray, img2: np.ndarray) -> float:
-    d = np.abs(img1 - img2).ravel()
-    largest_possible_difference = 255 * len(d)
-    difference_percentage = np.sum(d) / largest_possible_difference
-    return 1 - difference_percentage
+def compare(batch: np.ndarray, target: np.ndarray):
+    n_parallel = batch.shape[0]
+    nd = len(batch.shape)
+    sum_axis = tuple(range(1,nd))
+    differences = np.abs(batch.astype(np.int8) - target.astype(np.int8))
+    largest_possible_differences = 255 * differences.size / n_parallel
+    difference_percentages = np.sum(differences, axis = sum_axis) / largest_possible_differences
+    return 1- difference_percentages

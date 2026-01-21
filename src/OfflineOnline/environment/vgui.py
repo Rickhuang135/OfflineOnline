@@ -21,7 +21,9 @@ class Vgui:
 
     def __init__(self, conn: Connection):
         self.saving_index = 0
+        self.verbose = False
         self.saving = False # whether all recorded states are being saved
+        self.current_action = Actions.Nothing
         self.img_path = Screenshots
         self.conn = conn
         self.display = Display(visible=False, size=self.size, use_xauth=True)
@@ -64,9 +66,9 @@ class Vgui:
         # clean(pyautogui)
 
         # Share buffer and await further instruction
-        frame = self.get_frame()
+        frame = self.get_frame() # shape (height, width, color_channels)
         self.shm = SharedMemory(create=True, size=frame.nbytes)
-        self.shm_array = np.ndarray(frame.shape, dtype=frame.dtype, buffer=self.shm.buf)
+        self.shm_array = np.ndarray(frame.shape, dtype=frame.dtype, buffer=self.shm.buf) # shape (height, width, color_channels)
         self.shm_array[:] = frame
 
         self.conn.send({
@@ -80,17 +82,22 @@ class Vgui:
     def get_instruction(self):
         msg = self.conn.recv()
         match msg:
+            case Actions.Nothing:
+                self.take_action(msg)
+                self.send_frame()
             case Actions.Jump:
-                self.action_jump()
+                self.take_action(msg)
                 self.send_frame()
             case Actions.Duck:
-                self.action_duck()
+                self.take_action(msg)
                 self.send_frame()
-            case Actions.Nothing:
-                self.send_frame()
+            case Words.setVerbose:
+                self.verbose = True
+            case Words.setSilent:
+                self.verbose = False
             case Words.SAVEGAME:
                 self.saving = True
-                print("Now saving images")
+                self.print("Now saving images")
             case Words.CLOSEDISPLAYS:
                 self.end()
                 return 
@@ -102,14 +109,21 @@ class Vgui:
         img = self.controller.screenshot( region = self.region )
         if self.saving:
             self.save_image(img)
-        img_arr = np.array(img, dtype=np.uint8, copy=True)
+        img_arr = np.array(img) # shape (height, width, color_channels)
         return img_arr
     
-    def action_jump(self):
-        self.controller.press('up')
+    def take_action(self, action):
+        if action != self.current_action:
+            if self.current_action == Actions.Nothing: # no keys need to be released
+                self.controller.keyDown(action) 
+            else: # release key before taking new action
+                self.controller.keyUp(self.current_action)
+                self.controller.keyDown(action)
+            self.current_action = action
 
-    def action_duck(self):
-        self.controller.press('down')
+    def print(self, msg = "", **kwargs):
+        if self.verbose >= 2:
+            print(f"vgui{self.id}: {msg}", **kwargs)
 
     def send_frame(self):
         self.shm_array[:] = self.get_frame()
