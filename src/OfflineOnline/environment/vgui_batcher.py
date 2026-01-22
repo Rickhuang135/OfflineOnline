@@ -4,7 +4,8 @@ from multiprocessing.shared_memory import SharedMemory
 import numpy as np
 import time
 
-from .utils.numpy_similarity import compare
+from .utils.slice_shape import decapitate as decapitate_shape
+from .utils.numpy_similarity import compare as compare_nparray
 from .utils.check_end import check_end
 from .utils.save_crash import save_to_png
 from .vgui import Vgui
@@ -21,6 +22,7 @@ class VguiBatch:
             verbose: int = 2, # 0 for silent, 1 for intialise only, 2 for everything
             perform_checks: bool = True, # optional checks that ensure data security
                  ):
+        self.time_init = time.time()
         self.verbose = verbose
         self.n_parallel = n_parallel
         self.running = False
@@ -68,11 +70,11 @@ class VguiBatch:
             # optional checks
             if perform_checks:
                 # horizontal check: ensure all child processes have the same starting image
+                arrays, time_stamps = self.fetch()
                 if n_parallel > 1:
-                    arrays = self.read_shm()
                     example_id = 0 
                     example_array = arrays[0]
-                    similarities = compare(arrays[1:], example_array)
+                    similarities = compare_nparray(arrays[1:], example_array)
                     for i, similarity in enumerate(similarities):
                         id = i+1
                         if similarity < self.similarity_threshold:
@@ -81,18 +83,35 @@ class VguiBatch:
                             raise Exception(f"Numpy inputs from vgui {example_id} and vgui {id} has similarity {similarity}, threshold is {self.similarity_threshold}")
                     
                 # vertical check: play one round on each vgui to check movement and game end dectection
+                repeat_inds = np.zeros(1)
                 start = time.time()
                 # self.pipes[0].send(Words.setVerbose)
                 # self.pipes[0].send(Words.SAVEGAME)
-                self.fetch()
-                while time.time()-start < 7:
-                    # self.fetch([Actions.Duck for _ in range(self.n_parallel)])
-                    self.fetch()
-                    time.sleep(0.1)
-                print(self.read_shm().shape)
+                previous_arr, time_stamps_prev = arrays, time_stamps
+                arrays, time_stamps = self.fetch()
+                while len(repeat_inds) < n_parallel and time.time()-start < self.time_out:
+                    # check if new states match with previous states
+                    match_prev = np.all(previous_arr==arrays, axis=decapitate_shape(arrays.shape)) # shape (n_parallel)
+                    if match_prev.any():
+                        repeat_inds = np.where(match_prev==True)[0]
+                        end_condition = check_end(previous_arr[repeat_inds])
+                        # all repeating states should be end states
+                        if not end_condition.all(): # there exists repeating states which are NOT end states
+                            problematic_inds = repeat_inds[np.where(end_condition==False)[0]]
+                            times_elapsed_prev = time_stamps_prev - self.time_init
+                            times_elapsed_now = time_stamps - self.time_init
+                            for ind in problematic_inds:
+                                save_to_png(previous_arr[ind], f"vertical_match_failed_vgui{ind}_{times_elapsed_prev[ind]:.2f}")
+                                save_to_png(arrays[ind], f"vertical_match_failed_vgui{ind}_{times_elapsed_now[ind]:.2f}")
+                            raise Exception(f"Consecutive inputs from vgui {repeat_inds} repeated without ending at {np.min(times_elapsed_prev)}-{np.max(times_elapsed_now)}")
+                    previous_arr, time_stamps_prev = arrays, time_stamps
+                    arrays, time_stamps = self.fetch([Actions.Duck for _ in range(n_parallel)])
+
         except Exception as e:
             self.end()
             raise e
+        self.time_ready = time.time()
+        self.print1(f"Environment ready in {self.time_ready - self.time_init}")
 
     def print1(self, msg = "", **kwargs):
         if self.verbose >= 1:
@@ -117,19 +136,19 @@ class VguiBatch:
         for conn, action in zip(self.pipes, actions):
             conn.send(action)
 
-        time_stamps = [None for _ in range(self.n_parallel)]
+        time_stamps_arr = [None for _ in range(self.n_parallel)]
         start = time.time()
-        while time.time()-start < self.time_out and None in time_stamps:
-            for i, time_stamp in enumerate(time_stamps):
+        while time.time()-start < self.time_out and None in time_stamps_arr:
+            for i, time_stamp in enumerate(time_stamps_arr):
                 if time_stamp is None:
                     c_pipe = self.pipes[i]
                     if c_pipe.poll():
-                        time_stamps[i] = c_pipe.recv()
-        if None in time_stamps:
-            missing_index = time_stamps.index(None)
+                        time_stamps_arr[i] = c_pipe.recv()
+        if None in time_stamps_arr:
+            missing_index = time_stamps_arr.index(None)
             raise Exception(f"Process {missing_index} dropped after {time.time()-start:2f}s during image retrieval")
-        return time_stamps
+        
+        time_stamps = np.array(time_stamps_arr)
+        frames = np.stack(self.shm_arrays)
+        return frames, time_stamps
     
-    def read_shm(self):
-        return np.stack(self.shm_arrays) # shape (n_parallel, height, width, color_channels)
-

@@ -83,14 +83,11 @@ class Vgui:
         msg = self.conn.recv()
         match msg:
             case Actions.Nothing:
-                self.take_action(msg)
-                self.send_frame()
+                self.actnsend(msg)
             case Actions.Jump:
-                self.take_action(msg)
-                self.send_frame()
+                self.actnsend(msg)
             case Actions.Duck:
-                self.take_action(msg)
-                self.send_frame()
+                self.actnsend(msg)
             case Words.setVerbose:
                 self.verbose = True
             case Words.setSilent:
@@ -111,6 +108,11 @@ class Vgui:
             self.save_image(img)
         img_arr = np.array(img) # shape (height, width, color_channels)
         return img_arr
+    
+    def actnsend(self, action):
+        self.take_action(action)
+        time.sleep(0.1)
+        self.send_frame()
     
     def take_action(self, action):
         if action != self.current_action:

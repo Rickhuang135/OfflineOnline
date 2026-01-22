@@ -9,6 +9,7 @@ FILTER_PATTERNS = [
     re.compile(r"The name org.freedesktop.UPower was not provided"),
     re.compile(r"Xlib.xauth: warning, no xauthority details available"),
     re.compile(r"rejected by interface blink.mojom.Widget"),
+    re.compile(r"Registration response error message: QUOTA_EXCEEDED"),
 ]
 
 def should_suppress(line: str) -> bool:
