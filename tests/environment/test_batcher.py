@@ -1,5 +1,10 @@
 from OfflineOnline.environment import VguiBatch
 
-env = VguiBatch(4, verbose=2)
-# env.start()
-env.end()
+import asyncio
+
+async def main():
+    env = await VguiBatch.create(4)
+    # env.start()
+    env.end()
+
+asyncio.run(main())

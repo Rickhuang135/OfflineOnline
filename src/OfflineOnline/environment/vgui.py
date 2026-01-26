@@ -124,8 +124,8 @@ class Vgui:
             self.current_action = action
 
     def print(self, msg = "", **kwargs):
-        if self.verbose >= 2:
-            print(f"vgui{self.id}: {msg}", **kwargs)
+        if self.verbose:
+            print(f"vgui {self.id}: {msg}", **kwargs)
 
     def send_frame(self):
         self.shm_array[:] = self.get_frame()
