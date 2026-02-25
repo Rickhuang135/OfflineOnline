@@ -1,7 +1,7 @@
 import numpy as np
 
 from .discretizeAB import discretize
-from .generate_polynomials import p
+from .generate_polynomials import phi as p
 
 class Memory:
     def __init__(self, window_size: int, dimensions: int = 20):
@@ -10,14 +10,14 @@ class Memory:
         self.dimensions = dimensions
 
         # build matrices
-        raw_B = (-1 ) ** np.arange(dimensions) * (2*np.arange(dimensions)+1) / window_size
+        i = np.arange(dimensions)
+        raw_B = (-1 ) ** i * np.sqrt(2*(2*i+1)) / window_size
 
-        rows = []
-        for i in range(dimensions):
-            res = np.ones(dimensions)*-1
-            res[:i] = (-1 ) ** (np.arange(i)+i+1)
-            rows.append(res*(2*i+1))
-        raw_A = np.stack(rows) / window_size
+        i, j = np.indices((dimensions, dimensions))
+        power_condition = ((i+j)%2 == 0) + (j>i)
+        raw_A = np.where(power_condition, -1, 1)
+        scale_terms = np.sqrt((2*i+1)*(2*j+1))
+        raw_A = raw_A * scale_terms / window_size
         print(raw_A)
 
         # discretize matrices

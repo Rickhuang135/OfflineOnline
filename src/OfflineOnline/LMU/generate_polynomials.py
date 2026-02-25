@@ -10,7 +10,7 @@ def p(x, dimensions):
 
 def phi(x, dimensions):
     series = p(x, dimensions)
-    coefficients = np.sqrt(np.arange(0, dimensions) * 2 + 1)
+    coefficients = np.sqrt((np.arange(0, dimensions) * 2 + 1)/2)
     temp_series = series.T
     temp_series[:, np.arange(dimensions)] *= coefficients
     return temp_series.T
