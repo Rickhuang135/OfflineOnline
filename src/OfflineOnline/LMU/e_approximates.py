@@ -8,7 +8,7 @@ def PowerGenerator(x: np.ndarray, power: int):
         res*=x
 
 def MatrixPowerGenerator(x: np.ndarray, power:int):
-    res = np.identity(x.shape[0])
+    res = np.identity(x.shape[0], dtype=np.float128)
     for _ in range(power+1):
         yield res
         res@=x
@@ -25,8 +25,9 @@ def taylor_approx(x: np.ndarray, degree: int = 5):
     return result
 
 def pade_approx(x: np.ndarray, m: int=5, n: int=5) -> np.ndarray:
-    px = np.zeros_like(x)
-    qx = np.zeros_like(x)
+    x = np.astype(x, np.float128)
+    px = np.zeros_like(x, dtype=np.float128)
+    qx = np.zeros_like(x, dtype=np.float128)
     if len(x.shape) == 2 and x.shape[0] == x.shape[1]:
         genM = MatrixPowerGenerator(x, m)
         genN = MatrixPowerGenerator(x, n)
@@ -47,4 +48,4 @@ def pade_approx(x: np.ndarray, m: int=5, n: int=5) -> np.ndarray:
         abs_res = xcurrent * numerator/denominator
         qx += abs_res if i%2==0 else abs_res*-1
 
-    return res_operation(px,qx)
+    return res_operation(np.astype(px, np.float64),np.astype(qx, np.float64))

@@ -4,16 +4,16 @@ from .discretizeAB import discretize
 from .generate_polynomials import phi as p
 
 class Memory:
-    def __init__(self, window_size: int, dimensions: int = 20):
-        self.values = np.zeros(dimensions)
+    def __init__(self, window_size: int, number_states: int = 1, degree_approx: int = 20):
+        self.values = np.zeros((degree_approx, number_states))
         self.window_size = window_size
-        self.dimensions = dimensions
+        self.degree_approx = degree_approx
 
         # build matrices
-        i = np.arange(dimensions)
+        i = np.arange(degree_approx)
         raw_B = (-1 ) ** i * np.sqrt(2*(2*i+1)) / window_size
 
-        i, j = np.indices((dimensions, dimensions))
+        i, j = np.indices((degree_approx, degree_approx))
         power_condition = ((i+j)%2 == 0) + (j>i)
         raw_A = np.where(power_condition, -1, 1)
         scale_terms = np.sqrt((2*i+1)*(2*j+1))
@@ -21,15 +21,11 @@ class Memory:
 
         # discretize matrices
         self.A, self.B = discretize(raw_A, raw_B)
+        self.B = self.B.reshape(-1,1)
 
-    def update(self, new_input):
-        self.values = self.A@self.values + self.B*new_input
+    def update(self, array):
+        self.values = self.A@self.values + self.B@array.reshape(1,-1)
 
-    def __getitem__(self, index):
-        return self.values[index]
-
-    def reconstruct(self):
-        def approx(x: np.ndarray): # expects values betwee -1 and 1
-            stack = p(x, self.dimensions)
-            return (stack.T@self.values)
-        return approx
+    def reconstruct(self, x: np.ndarray):
+        stack = p(x, self.degree_approx)
+        return (stack.T@self.values).T
