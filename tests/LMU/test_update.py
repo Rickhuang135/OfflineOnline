@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 from OfflineOnline.LMU.memory_tr import Memory
-from OfflineOnline.environment.device import DEVICE
+from OfflineOnline.config.device import DEVICE
 
 # set up variables
 test_range = 20

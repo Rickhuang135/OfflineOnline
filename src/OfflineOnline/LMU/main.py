@@ -1,7 +1,7 @@
 import torch
 from torch.nn import Linear
 
-from OfflineOnline.environment.device import DEVICE
+from OfflineOnline.config.device import DEVICE
 from .flattened_layer import FlatLinear
 from .memory_tr import Memory
 

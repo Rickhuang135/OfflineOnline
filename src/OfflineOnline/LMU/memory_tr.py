@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from OfflineOnline.environment.device import DEVICE
+from OfflineOnline.config.device import DEVICE
 from .memory_np import Memory as Memory_np
 from .generate_polynomials import phi as p
 

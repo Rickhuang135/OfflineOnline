@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from OfflineOnline.environment.device import DEVICE
+from OfflineOnline.config.device import DEVICE
 
 class FlatLinear(nn.Linear):
     def __init__(self, nr: int, nc: int, no:int, device = DEVICE, dtype = None):
