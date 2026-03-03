@@ -8,7 +8,7 @@ import subprocess
 import time
 
 from OfflineOnline.config.paths import Screenshots
-from OfflineOnline.config.constants import window_size, game_canvas
+from OfflineOnline.config.constants import window_size, game_canvas, observation_delay, gray_scale
 from .utils.virtual_user import assign_directory
 from .utils.suppress_warning import filter_proc
 from .utils.wait_on_img import wait_on_img
@@ -104,6 +104,8 @@ class Vgui:
 
     def get_frame(self) -> np.ndarray:
         img = self.controller.screenshot( region = self.region )
+        if gray_scale:
+            img = img.convert('L')
         if self.saving:
             self.save_image(img)
         img_arr = np.array(img) # shape (height, width, color_channels)
@@ -111,7 +113,7 @@ class Vgui:
     
     def actnsend(self, action):
         self.take_action(action)
-        time.sleep(0.1)
+        time.sleep(observation_delay)
         self.send_frame()
     
     def take_action(self, action):
