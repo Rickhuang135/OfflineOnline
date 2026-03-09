@@ -21,7 +21,7 @@ async def main():
     encoder = Encoder(nx, latent_state_size)
     reconstructor = Reconstruct(latent_state_size, nx)
     dynamics = DynamicsModel(latent_state_size)
-    control = SarsaLambda(latent_state_size*2, 3, 5, 0.8)
+    control = SarsaLambda(latent_state_size, 3, 5, 0.8, n_parallel)
     
 
     env = await task_create_env

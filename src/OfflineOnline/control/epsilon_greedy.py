@@ -3,10 +3,9 @@ import torch
 from random import random
 
 def choose_action(action_values: torch.Tensor, epsilon: float) -> torch.Tensor:
-    if random() < epsilon: # make random action
-        if len(action_values.shape) == 2:
-            size = (action_values.shape[0],)
-        else:
-            size = (1,)
-        return torch.randint(0, action_values.shape[-1], size, device=action_values.device)
-    return torch.argmax(action_values, dim=-1)
+    na = action_values.shape[-1]
+    action_values = action_values.reshape(-1, na)
+    best_actions = torch.argmax(action_values, dim=-1)
+    rand = torch.rand(action_values.shape[0])
+    random_actions = torch.randint_like(best_actions,0,na)
+    return torch.where(rand<epsilon, random_actions, best_actions).squeeze()

@@ -10,7 +10,7 @@ class Reconstruct(nn.Module):
             n_observation: int, # size of observations
             device = DEVICE,
             ):
-        self.l0 = nn.Linear(nl*2, n_observation//4)
+        self.l0 = nn.Linear(nl, n_observation//4)
         self.a0 = nn.ReLU()
         self.l1 = nn.Linear(n_observation//4, n_observation//2)
         self.a1 = nn.ReLU()

@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+from OfflineOnline.config.latent import combine
 from OfflineOnline.config.device import DEVICE
 
 class Gaussify(nn.Module):
@@ -19,4 +20,4 @@ class Gaussify(nn.Module):
     def forward(self, x):
         means = self.a_means(self.l_means(x))
         stds = self.a_stds(self.l_stds(x))
-        return means, stds
+        return combine(means, stds)

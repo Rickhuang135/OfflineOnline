@@ -1,19 +1,20 @@
 import torch
 from torch import nn
 
+from OfflineOnline.config.latent import combine
 from OfflineOnline.config.device import DEVICE
 
 class DynamicsModel(nn.Module):
     def __init__(
             self, 
-            nl: int, # dimension of latent states, expect twice as much input
+            nl: int, # dimension of latent states
             na: int = 1, # dimension of action
             device = DEVICE,
             ):
         super().__init__()
         self.nl = nl
         self.na = na
-        self.l1 = nn.Linear(nl*2 + na, nl*4) # extra input for action
+        self.l1 = nn.Linear(nl + na, nl*4) # extra input for action
         self.a1 = nn.ReLU()
         self.l2 = nn.Linear(nl*4, nl*2)
         self.a2 = nn.ReLU()
@@ -25,11 +26,11 @@ class DynamicsModel(nn.Module):
         self.device = device
         self.to(device)
 
-    def forward(self, latent_means: torch.Tensor, latent_std: torch.Tensor, action: torch.Tensor):
-        x = torch.concat([latent_means, latent_std, action], dim=-1)
+    def forward(self, latent: torch.Tensor, action: torch.Tensor):
+        x = torch.concat([latent, action], dim=-1)
         x = self.a1(self.l1())
         x = self.a2(self.l2(x))
         means = self.a_means(self.l_means(x))
         stds = self.a_stds(self.l_stds(x))
         reward_and_continuation = self.l_reward_and_continuation(x)
-        return means, stds, reward_and_continuation
+        return combine(means,stds), reward_and_continuation

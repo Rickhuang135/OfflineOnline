@@ -3,8 +3,8 @@ import torch
 from OfflineOnline.config.device import DEVICE
 
 class CircularQueue:
-    def __init__(self, length, item_dimension, device = DEVICE):
-        self.queue = torch.zeros((length, item_dimension), device=device)
+    def __init__(self, length, item_dimension, device = DEVICE, dtype = None):
+        self.queue = torch.zeros((length, item_dimension), device=device, dtype = dtype)
         self.write_ind = 0
         self.end_ind = 0
         self.length = length
@@ -24,3 +24,7 @@ class CircularQueue:
         behind_write = self.queue[0: self.write_ind, :]
         infront_write = self.queue[self.write_ind:, :]
         return torch.concat((infront_write, behind_write), dim = 0)
+    
+    def reset(self):
+        self.queue*= 0
+        self.write_ind = 0

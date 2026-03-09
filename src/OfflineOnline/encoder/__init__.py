@@ -25,5 +25,5 @@ class Encoder(nn.Module):
     def forward(self, x: torch.Tensor, reward_and_continuation: torch.Tensor, last_action: torch.Tensor):
         x_all = torch.concat([x, reward_and_continuation, last_action], dim=-1)
         hidden_state = self.LMU(x_all)
-        means, stds = self.gaussify(hidden_state)
-        return means, stds
+        latent = self.gaussify(hidden_state)
+        return latent
