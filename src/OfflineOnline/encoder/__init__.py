@@ -15,6 +15,7 @@ class Encoder(nn.Module):
             na: int = 1, # dimension of actions
             device = DEVICE,
             ):
+        super().__init__()
         total_inputs = nx + na + 2 # reward and continuation always has 1 dimension each
         self.total_inputs = total_inputs
         self.LMU = LMULayer(total_inputs, hidden_size, hidden_size, window_size, max(window_size*2//3, 2))

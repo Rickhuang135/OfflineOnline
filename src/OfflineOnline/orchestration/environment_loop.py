@@ -22,6 +22,7 @@ async def environment_loop(env: Envrionment, action_buffer: mp.Queue, state_buff
         if not action_buffer.empty():
             cached_actions = interpret_str(action_buffer.get())
         observations, reward, end, time_stamps = await env.get(cached_actions)
+        cached_actions = None
         # observations have shape (batch, screen_width, screen_height, channels)
         expected_flattened_size = game_canvas[2] * game_canvas[3]
         expected_flattened_size *= 3 if gray_scale else 1

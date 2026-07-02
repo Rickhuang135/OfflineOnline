@@ -11,6 +11,7 @@ class Gaussify(nn.Module):
             nl: int, # dimension of latent space
             device = DEVICE,
     ):
+        super().__init__()
         self.l_means = nn.Linear(n_input, nl)
         self.a_means = nn.ReLU()
         self.l_stds = nn.Linear(n_input, nl)

@@ -57,6 +57,8 @@ async def train(
             RnC_loss = MSEloss(reward_and_continuation, RnC_recon)
             total_loss = observation_loss + RnC_loss
 
+            del observations, reward, end
+
             if not (RnC0 is None or l0 is None or lpred is None or RnCpred is None): # world model loss
                 encode_loss = CEloss(l, lpred.detatch())
                 dynam_pred_loss = CEloss(l.detach(), lpred)
